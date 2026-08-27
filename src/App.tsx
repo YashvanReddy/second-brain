@@ -1,347 +1,279 @@
-type ContentItem = {
+import {
+  Brain,
+  FileText,
+  Link,
+  Hash,
+  Share2,
+  Plus,
+  Trash2,
+  MoreHorizontal,
+} from "lucide-react";
+
+import {
+  FaTwitter,
+  FaYoutube,
+} from "react-icons/fa";
+
+type Note = {
   title: string;
-  source: "YouTube" | "Twitter" | "Google Docs";
-  time: string;
-  description: string;
+  type: "tweet" | "video" | "document";
+  content?: string;
+  tags: string[];
+  date: string;
 };
 
-const recentContent: ContentItem[] = [
+const notes: Note[] = [
   {
-    title: "How Docker Works",
-    source: "YouTube",
-    time: "2 hours ago",
-    description: "Understanding containers, images and Docker architecture.",
+    title: "Project Ideas",
+    type: "document",
+    content:
+      "Future Projects\n\n• Build a personal knowledge base\n• Create a habit tracker\n• Design a minimalist todo app",
+    tags: ["productivity", "ideas"],
+    date: "10/03/2024",
   },
   {
-    title: "Zero Trust Architecture",
-    source: "Twitter",
-    time: "Yesterday",
-    description: "Notes and ideas about Zero Trust security.",
+    title: "How to Build a Second Brain",
+    type: "video",
+    tags: ["productivity", "learning"],
+    date: "09/03/2024",
   },
   {
-    title: "Network Security Notes",
-    source: "Google Docs",
-    time: "2 days ago",
-    description: "Important concepts for cybersecurity research.",
-  },
-  {
-    title: "Understanding MongoDB",
-    source: "YouTube",
-    time: "3 days ago",
-    description: "MongoDB fundamentals and database concepts.",
+    title: "Productivity Tip",
+    type: "tweet",
+    content:
+      "The best way to learn is to build in public. Share your progress, get feedback, and help others along the way.",
+    tags: ["productivity", "learning"],
+    date: "08/03/2024",
   },
 ];
 
 function App() {
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-800">
 
-      {/* SIDEBAR */}
-      <aside className="hidden w-64 flex-col border-r border-slate-200 bg-white p-5 md:flex">
+      <div className="flex min-h-screen">
 
-        {/* Logo */}
-        <div className="mb-8 flex items-center gap-3 px-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-xl">
-            🧠
-          </div>
+        {/* SIDEBAR */}
+        <aside className="hidden w-[360px] shrink-0 border-r border-slate-200 bg-white px-8 py-7 lg:block">
 
-          <span className="text-lg font-bold">
-            Second Brain
-          </span>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1">
-
-          <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Workspace
-          </p>
-
-          <button className="mb-1 flex w-full items-center gap-3 rounded-lg bg-indigo-50 px-3 py-2.5 text-sm font-semibold text-indigo-600">
-            <span>⌂</span>
-            Dashboard
-          </button>
-
-          <button className="mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 transition hover:bg-slate-100">
-            <span>📚</span>
-            All Content
-          </button>
-
-          <button className="mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 transition hover:bg-slate-100">
-            <span>⭐</span>
-            Favorites
-          </button>
-
-          <button className="mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 transition hover:bg-slate-100">
-            <span>🏷️</span>
-            Tags
-          </button>
-
-          <div className="my-5 border-t border-slate-200" />
-
-          <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-            Sources
-          </p>
-
-          <button className="mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100">
-            <span className="text-red-500">▶</span>
-            YouTube
-          </button>
-
-          <button className="mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100">
-            <span>𝕏</span>
-            Twitter
-          </button>
-
-          <button className="mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100">
-            <span>📄</span>
-            Google Docs
-          </button>
-
-        </nav>
-
-        {/* Bottom */}
-        <div>
-
-          <button className="mb-3 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100">
-            <span>⚙️</span>
-            Settings
-          </button>
-
-          <div className="flex items-center gap-3 border-t border-slate-200 pt-4">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white">
-              Y
-            </div>
-
-            <div>
-              <p className="text-sm font-semibold">
-                Yashvan
-              </p>
-
-              <p className="text-xs text-slate-400">
-                My Brain
-              </p>
-            </div>
-          </div>
-
-        </div>
-      </aside>
-
-      {/* MAIN */}
-      <main className="min-w-0 flex-1">
-
-        {/* TOP BAR */}
-        <header className="flex h-18 items-center justify-between border-b border-slate-200 bg-white px-5 md:px-8">
-
-          <div className="flex w-full max-w-lg items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-
-            <span className="text-xl text-slate-400">
-              ⌕
-            </span>
-
-            <input
-              type="text"
-              placeholder="Search your knowledge..."
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
+          {/* LOGO */}
+          <div className="mb-16 flex items-center gap-3">
+            <Brain
+              size={44}
+              strokeWidth={2}
+              className="text-indigo-600"
             />
 
-            <kbd className="hidden rounded border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-400 sm:block">
-              Ctrl K
-            </kbd>
-
+            <h1 className="text-[30px] font-bold tracking-tight">
+              Second Brain
+            </h1>
           </div>
 
-          <div className="ml-4 flex items-center gap-3">
-            <button className="text-lg">
-              🔔
-            </button>
+          {/* NAVIGATION */}
+          <nav className="space-y-4">
 
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white">
-              Y
-            </div>
-          </div>
-
-        </header>
-
-        {/* CONTENT */}
-        <div className="mx-auto max-w-7xl px-5 py-8 md:px-10 md:py-10">
-
-          {/* WELCOME */}
-          <section className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-center">
-
-            <div>
-              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-indigo-600">
-                Your Knowledge Space
-              </p>
-
-              <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-                Welcome back, Yashvan 👋
-              </h1>
-
-              <p className="mt-2 text-sm text-slate-500">
-                Capture ideas, organize knowledge, and build your second brain.
-              </p>
-            </div>
-
-            <button className="flex w-fit items-center gap-2 rounded-lg bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
-              <span className="text-lg">+</span>
-              Add Content
-            </button>
-
-          </section>
-
-          {/* STATS */}
-          <section className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-
-            <StatCard
-              icon="📚"
-              label="Total Content"
-              value="25"
-              bg="bg-indigo-50"
+            <SidebarItem
+              icon={<FaTwitter size={26} />}
+              label="Tweets"
+            />
+            <SidebarItem
+              icon={<FaYoutube size={28} />}
+              label="Videos"
             />
 
-            <StatCard
-              icon="▶"
-              label="YouTube"
-              value="12"
-              bg="bg-red-50"
-            />
-
-            <StatCard
-              icon="𝕏"
-              label="Twitter"
-              value="8"
-              bg="bg-slate-100"
-            />
-
-            <StatCard
-              icon="📄"
+            <SidebarItem
+              icon={<FileText size={28} />}
               label="Documents"
-              value="5"
-              bg="bg-blue-50"
             />
 
-          </section>
+            <SidebarItem
+              icon={<Link size={28} />}
+              label="Links"
+            />
 
-          {/* RECENT CONTENT */}
-          <section>
+            <SidebarItem
+              icon={<Hash size={29} />}
+              label="Tags"
+            />
 
-            <div className="mb-4 flex items-end justify-between">
+          </nav>
+        </aside>
 
-              <div>
-                <h2 className="text-lg font-bold">
-                  Recent Content
-                </h2>
+        {/* MAIN */}
+        <main className="min-w-0 flex-1">
 
-                <p className="mt-1 text-xs text-slate-400">
-                  Your recently saved knowledge
-                </p>
-              </div>
+          {/* HEADER */}
+          <header className="flex items-center justify-between px-8 py-10 lg:px-12">
 
-              <button className="text-xs font-semibold text-indigo-600 hover:text-indigo-700">
-                View all →
+            <h2 className="text-4xl font-bold tracking-tight">
+              All Notes
+            </h2>
+
+            <div className="flex items-center gap-4">
+
+              <button className="flex items-center gap-3 rounded-xl bg-indigo-100 px-7 py-4 text-lg font-medium text-indigo-700 transition hover:bg-indigo-200">
+                <Share2 size={24} />
+                Share Brain
+              </button>
+
+              <button className="flex items-center gap-3 rounded-xl bg-indigo-600 px-7 py-4 text-lg font-medium text-white shadow-sm transition hover:bg-indigo-700">
+                <Plus size={26} />
+                Add Content
               </button>
 
             </div>
 
-            <div className="space-y-3">
+          </header>
 
-              {recentContent.map((item, index) => (
-                <ContentCard
-                  key={index}
-                  item={item}
-                />
-              ))}
+          {/* NOTES */}
+          <section className="grid grid-cols-1 gap-8 px-8 pb-12 lg:grid-cols-2 xl:grid-cols-3 lg:px-12">
 
-            </div>
+            {notes.map((note) => (
+              <NoteCard
+                key={note.title}
+                note={note}
+              />
+            ))} 
 
           </section>
 
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
 
-function StatCard({
+function SidebarItem({
   icon,
   label,
-  value,
-  bg,
 }: {
-  icon: string;
+  icon: React.ReactNode;
   label: string;
-  value: string;
-  bg: string;
 }) {
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-5">
-      <div
-        className={`flex h-11 w-11 items-center justify-center rounded-lg ${bg}`}
-      >
+    <button className="flex w-full items-center gap-6 rounded-xl px-3 py-3 text-[22px] text-slate-700 transition hover:bg-slate-100">
+      <span className="text-slate-700">
         {icon}
-      </div>
+      </span>
 
-      <div>
-        <p className="text-xs text-slate-400">
-          {label}
-        </p>
-
-        <p className="mt-1 text-2xl font-bold">
-          {value}
-        </p>
-      </div>
-    </div>
+      <span>
+        {label}
+      </span>
+    </button>
   );
 }
 
-function ContentCard({
-  item,
+function NoteCard({
+  note,
 }: {
-  item: ContentItem;
+  note: Note;
 }) {
-  const icon =
-    item.source === "YouTube"
-      ? "▶"
-      : item.source === "Twitter"
-        ? "𝕏"
-        : "📄";
-
   return (
-    <div className="group flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-sm">
+    <article className="min-h-[450px] rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
 
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-slate-100 font-bold">
-        {icon}
-      </div>
+      {/* CARD HEADER */}
+      <div className="mb-6 flex items-center justify-between">
 
-      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center gap-4">
 
-        <h3 className="truncate text-sm font-semibold">
-          {item.title}
-        </h3>
+          <SourceIcon type={note.type} />
 
-        <p className="mt-1 truncate text-xs text-slate-500">
-          {item.description}
-        </p>
+          <h3 className="truncate text-xl font-medium">
+            {note.title}
+          </h3>
 
-        <div className="mt-2 flex gap-2 text-[11px] text-slate-400">
-          <span className="font-semibold text-indigo-600">
-            {item.source}
-          </span>
+        </div>
 
-          <span>•</span>
+        <div className="flex items-center gap-4 text-slate-400">
 
-          <span>{item.time}</span>
+          <button className="transition hover:text-indigo-600">
+            <Share2 size={22} />
+          </button>
+
+          <button className="transition hover:text-red-500">
+            <Trash2 size={22} />
+          </button>
+
         </div>
 
       </div>
 
-      <button className="px-2 text-slate-400 opacity-0 transition group-hover:opacity-100">
-        •••
-      </button>
+      {/* CONTENT */}
+      {note.type === "video" ? (
+        <div className="mb-6 flex h-44 items-center justify-center rounded-xl bg-slate-200">
+          <FileText
+            size={58}
+            strokeWidth={1.5}
+            className="text-slate-400"
+          />
+        </div>
+      ) : (
+        <div className="mb-6 whitespace-pre-line text-[20px] leading-8 text-slate-700">
+          {note.content}
+        </div>
+      )}
 
-    </div>
+      {/* TAGS */}
+      <div className="mb-7 flex flex-wrap gap-3">
+
+        {note.tags.map((tag) => (
+          <span
+            key={tag}
+            className="rounded-full bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-600"
+          >
+            #{tag}
+          </span>
+        ))}
+
+      </div>
+
+      {/* DATE */}
+      <div className="flex items-center justify-between text-base text-slate-500">
+
+        <span>
+          Added on {note.date}
+        </span>
+
+        <button className="text-slate-400 hover:text-slate-600">
+          <MoreHorizontal size={22} />
+        </button>
+
+      </div>
+
+    </article>
   );
 }
 
-export default App;  
+function SourceIcon({
+  type,
+}: {
+  type: Note["type"];
+}) {
+  if (type === "tweet") {
+    return (
+      <FaTwitter
+        size={24}
+        className="shrink-0 text-slate-600"
+      />
+    );
+  }
+
+  if (type === "video") {
+    return (
+      <FaYoutube
+        size={26}
+        className="shrink-0 text-slate-600"
+      />
+    );
+  }
+
+  return (
+    <FileText
+      size={26}
+      className="shrink-0 text-slate-600"
+    />
+  );
+}
+
+
+export default App;
