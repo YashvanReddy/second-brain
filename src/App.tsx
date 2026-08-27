@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import {
   Brain,
   FileText,
@@ -7,23 +9,28 @@ import {
   Plus,
   Trash2,
   MoreHorizontal,
+  X,
 } from "lucide-react";
 
 import {
   FaTwitter,
   FaYoutube,
 } from "react-icons/fa";
+type ContentType = "tweet" | "video" | "document" | "link";
 
 type Note = {
+  id: number;
   title: string;
-  type: "tweet" | "video" | "document";
+  type: ContentType;
   content?: string;
+  url?: string;
   tags: string[];
   date: string;
 };
 
-const notes: Note[] = [
+const initialNotes: Note[] = [
   {
+    id: 1,
     title: "Project Ideas",
     type: "document",
     content:
@@ -32,14 +39,18 @@ const notes: Note[] = [
     date: "10/03/2024",
   },
   {
+    id: 2,
     title: "How to Build a Second Brain",
     type: "video",
+    url: "https://youtube.com/",
     tags: ["productivity", "learning"],
     date: "09/03/2024",
   },
   {
+    id: 3,
     title: "Productivity Tip",
     type: "tweet",
+    url: "https://twitter.com/",
     content:
       "The best way to learn is to build in public. Share your progress, get feedback, and help others along the way.",
     tags: ["productivity", "learning"],
@@ -48,6 +59,49 @@ const notes: Note[] = [
 ];
 
 function App() {
+  const [notes, setNotes] = useState<Note[]>(initialNotes);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [contentType, setContentType] =
+    useState<ContentType>("link");
+
+  const [title, setTitle] = useState("");
+  const [url, setUrl] = useState("");
+  const [tags, setTags] = useState("");
+  const [content, setContent] = useState("");
+  const handleSave = () => {
+    if (!title.trim()) {
+      return;
+    }
+
+    const newNote: Note = {
+      id: Date.now(),
+      title: title.trim(),
+      type: contentType,
+      url: url.trim(),
+      content: content.trim(),
+      tags: tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+      date: new Date().toLocaleDateString("en-GB"),
+    };
+
+    setNotes((currentNotes) => [
+      newNote,
+      ...currentNotes,
+    ]);
+
+    setTitle("");
+    setUrl("");
+    setTags("");
+    setContent("");
+    setContentType("link");
+
+    setIsModalOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800">
 
@@ -116,7 +170,7 @@ function App() {
                 Share Brain
               </button>
 
-              <button className="flex items-center gap-3 rounded-xl bg-indigo-600 px-7 py-4 text-lg font-medium text-white shadow-sm transition hover:bg-indigo-700">
+              <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-3 rounded-xl bg-indigo-600 px-7 py-4 text-lg font-medium text-white shadow-sm transition hover:bg-indigo-700">
                 <Plus size={26} />
                 Add Content
               </button>
@@ -133,10 +187,168 @@ function App() {
                 key={note.title}
                 note={note}
               />
-            ))} 
+            ))}
 
           </section>
+          {isModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
 
+              <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+
+                <div className="mb-6 flex items-center justify-between">
+
+                  <div>
+                    <h2 className="text-2xl font-bold">
+                      Add Content
+                    </h2>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                      Save something to your Second Brain.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                  >
+                    <X size={22} />
+                  </button>
+
+                </div>
+
+                <div className="mb-5">
+
+                  <label className="mb-2 block text-sm font-semibold">
+                    Content Type
+                  </label>
+
+                  <div className="grid grid-cols-2 gap-2">
+
+                    <ContentTypeButton
+                      type="video"
+                      active={contentType === "video"}
+                      onClick={() => setContentType("video")}
+                      icon={<FaYoutube />}
+                      label="YouTube"
+                    />
+
+                    <ContentTypeButton
+                      type="tweet"
+                      active={contentType === "tweet"}
+                      onClick={() => setContentType("tweet")}
+                      icon={<FaTwitter />}
+                      label="Tweet"
+                    />
+
+                    <ContentTypeButton
+                      type="document"
+                      active={contentType === "document"}
+                      onClick={() => setContentType("document")}
+                      icon={<FileText size={18} />}
+                      label="Document"
+                    />
+
+                    <ContentTypeButton
+                      type="link"
+                      active={contentType === "link"}
+                      onClick={() => setContentType("link")}
+                      icon={<Link size={18} />}
+                      label="Link"
+                    />
+
+                  </div>
+
+                </div>
+
+                <div className="mb-4">
+
+                  <label className="mb-2 block text-sm font-semibold">
+                    Title
+                  </label>
+
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Enter a title..."
+                    className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  />
+
+                </div>
+
+                <div className="mb-4">
+
+                  <label className="mb-2 block text-sm font-semibold">
+                    URL
+                  </label>
+
+                  <input
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  />
+
+                </div>
+
+                {contentType === "document" && (
+                  <div className="mb-4">
+
+                    <label className="mb-2 block text-sm font-semibold">
+                      Content
+                    </label>
+
+                    <textarea
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      placeholder="Write or paste your content..."
+                      rows={4}
+                      className="w-full resize-none rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                    />
+
+                  </div>
+                )}
+
+                <div className="mb-6">
+
+                  <label className="mb-2 block text-sm font-semibold">
+                    Tags
+                  </label>
+
+                  <input
+                    value={tags}
+                    onChange={(e) => setTags(e.target.value)}
+                    placeholder="learning, productivity, coding"
+                    className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  />
+
+                  <p className="mt-1 text-xs text-slate-400">
+                    Separate tags with commas.
+                  </p>
+
+                </div>
+
+                <div className="flex justify-end gap-3">
+
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="rounded-lg px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    onClick={handleSave}
+                    className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
+                  >
+                    Save Content
+                  </button>
+
+                </div>
+
+              </div>
+
+            </div>
+          )}
         </main>
       </div>
     </div>
@@ -238,6 +450,7 @@ function NoteCard({
           <MoreHorizontal size={22} />
         </button>
 
+
       </div>
 
     </article>
@@ -272,6 +485,33 @@ function SourceIcon({
       size={26}
       className="shrink-0 text-slate-600"
     />
+  );
+}
+
+function ContentTypeButton({
+  type,
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  type: ContentType;
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-sm font-medium transition ${active
+          ? "border-indigo-500 bg-indigo-50 text-indigo-600"
+          : "border-slate-200 text-slate-600 hover:bg-slate-50"
+        }`}
+    >
+      {icon}
+      {label}
+    </button>
   );
 }
 
