@@ -59,11 +59,12 @@ const initialNotes: Note[] = [
 ];
 
 function App() {
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [notes, setNotes] = useState<Note[]>(initialNotes);
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<
-    "all" | ContentType
+    "all" | ContentType | "tags"
   >("all");
 
   const [contentType, setContentType] =
@@ -73,10 +74,18 @@ function App() {
   const [url, setUrl] = useState("");
   const [tags, setTags] = useState("");
   const [content, setContent] = useState("");
+
+
+
   const filteredNotes = notes.filter((note) => {
     const matchesFilter =
       activeFilter === "all" ||
+      activeFilter === "tags" ||
       note.type === activeFilter;
+
+    const matchesTag =
+      selectedTag === null ||
+      note.tags.includes(selectedTag);
 
     const query = searchQuery.toLowerCase().trim();
 
@@ -89,8 +98,15 @@ function App() {
       ) ||
       note.type.toLowerCase().includes(query);
 
-    return matchesFilter && matchesSearch;
+    return matchesFilter && matchesTag && matchesSearch;
   });
+  const allTags = Array.from(
+    new Set(notes.flatMap((note) => note.tags))
+  );
+
+
+
+
   const handleSave = () => {
     if (!title.trim()) {
       return;
@@ -151,41 +167,57 @@ function App() {
               icon={<FileText size={28} />}
               label="All Notes"
               active={activeFilter === "all"}
-              onClick={() => setActiveFilter("all")}
+              onClick={() => {
+                setActiveFilter("all");
+                setSelectedTag(null);
+              }}
             />
             <SidebarItem
               icon={<FaTwitter size={26} />}
               label="Tweets"
               active={activeFilter === "tweet"}
-              onClick={() => setActiveFilter("tweet")}
+              onClick={() => {
+                setActiveFilter("all");
+                setSelectedTag(null);
+              }}
             />
 
             <SidebarItem
               icon={<FaYoutube size={28} />}
               label="Videos"
               active={activeFilter === "video"}
-              onClick={() => setActiveFilter("video")}
+              onClick={() => {
+                setActiveFilter("all");
+                setSelectedTag(null);
+              }}
             />
 
             <SidebarItem
               icon={<FileText size={28} />}
               label="Documents"
               active={activeFilter === "document"}
-              onClick={() => setActiveFilter("document")}
+              onClick={() => {
+                setActiveFilter("all");
+                setSelectedTag(null);
+              }}
             />
 
             <SidebarItem
               icon={<Link size={28} />}
               label="Links"
               active={activeFilter === "link"}
-              onClick={() => setActiveFilter("link")}
+              onClick={() => {
+                setActiveFilter("all");
+                setSelectedTag(null);
+              }}
             />
 
             <SidebarItem
               icon={<Hash size={29} />}
               label="Tags"
+              active={activeFilter === "tags"}
+              onClick={() => setActiveFilter("tags")}
             />
-
           </nav>
         </aside>
 
@@ -201,6 +233,8 @@ function App() {
               {activeFilter === "video" && "Videos"}
               {activeFilter === "document" && "Documents"}
               {activeFilter === "link" && "Links"}
+
+              {activeFilter === "tags" && "Tags"}
             </h2>
 
             <div className="flex flex-1 justify-center">
@@ -248,6 +282,25 @@ function App() {
           </header>
 
           {/* NOTES */}
+          {activeFilter === "tags" && (
+            <div className="mb-8 px-8 lg:px-12">
+              <div className="flex flex-wrap gap-3">
+                {allTags.map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => setSelectedTag(tag)}
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition ${selectedTag === tag
+                        ? "bg-indigo-600 text-white"
+                        : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                      }`}
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <section className="grid grid-cols-1 gap-8 px-8 pb-12 lg:grid-cols-2 xl:grid-cols-3 lg:px-12">
             {filteredNotes.length > 0 ? (
               filteredNotes.map((note) => (
