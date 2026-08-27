@@ -62,6 +62,9 @@ function App() {
   const [notes, setNotes] = useState<Note[]>(initialNotes);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<
+    "all" | ContentType
+  >("all");
 
   const [contentType, setContentType] =
     useState<ContentType>("link");
@@ -70,6 +73,10 @@ function App() {
   const [url, setUrl] = useState("");
   const [tags, setTags] = useState("");
   const [content, setContent] = useState("");
+  const filteredNotes =
+    activeFilter === "all"
+      ? notes
+      : notes.filter((note) => note.type === activeFilter);
   const handleSave = () => {
     if (!title.trim()) {
       return;
@@ -127,22 +134,37 @@ function App() {
           <nav className="space-y-4">
 
             <SidebarItem
+              icon={<FileText size={28} />}
+              label="All Notes"
+              active={activeFilter === "all"}
+              onClick={() => setActiveFilter("all")}
+            />
+            <SidebarItem
               icon={<FaTwitter size={26} />}
               label="Tweets"
+              active={activeFilter === "tweet"}
+              onClick={() => setActiveFilter("tweet")}
             />
+
             <SidebarItem
               icon={<FaYoutube size={28} />}
               label="Videos"
+              active={activeFilter === "video"}
+              onClick={() => setActiveFilter("video")}
             />
 
             <SidebarItem
               icon={<FileText size={28} />}
               label="Documents"
+              active={activeFilter === "document"}
+              onClick={() => setActiveFilter("document")}
             />
 
             <SidebarItem
               icon={<Link size={28} />}
               label="Links"
+              active={activeFilter === "link"}
+              onClick={() => setActiveFilter("link")}
             />
 
             <SidebarItem
@@ -160,7 +182,11 @@ function App() {
           <header className="flex items-center justify-between px-8 py-10 lg:px-12">
 
             <h2 className="text-4xl font-bold tracking-tight">
-              All Notes
+              {activeFilter === "all" && "All Notes"}
+              {activeFilter === "tweet" && "Tweets"}
+              {activeFilter === "video" && "Videos"}
+              {activeFilter === "document" && "Documents"}
+              {activeFilter === "link" && "Links"}
             </h2>
 
             <div className="flex items-center gap-4">
@@ -181,10 +207,9 @@ function App() {
 
           {/* NOTES */}
           <section className="grid grid-cols-1 gap-8 px-8 pb-12 lg:grid-cols-2 xl:grid-cols-3 lg:px-12">
-
-            {notes.map((note) => (
+            {filteredNotes.map((note) => (
               <NoteCard
-                key={note.title}
+                key={note.id}
                 note={note}
               />
             ))}
@@ -358,13 +383,23 @@ function App() {
 function SidebarItem({
   icon,
   label,
+  active = false,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
+  active?: boolean;
+  onClick?: () => void;
 }) {
   return (
-    <button className="flex w-full items-center gap-6 rounded-xl px-3 py-3 text-[22px] text-slate-700 transition hover:bg-slate-100">
-      <span className="text-slate-700">
+    <button
+      onClick={onClick}
+      className={`flex w-full items-center gap-6 rounded-xl px-3 py-3 text-[22px] transition ${active
+        ? "bg-indigo-50 text-indigo-600"
+        : "text-slate-700 hover:bg-slate-100"
+        }`}
+    >
+      <span>
         {icon}
       </span>
 
@@ -505,8 +540,8 @@ function ContentTypeButton({
     <button
       onClick={onClick}
       className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-sm font-medium transition ${active
-          ? "border-indigo-500 bg-indigo-50 text-indigo-600"
-          : "border-slate-200 text-slate-600 hover:bg-slate-50"
+        ? "border-indigo-500 bg-indigo-50 text-indigo-600"
+        : "border-slate-200 text-slate-600 hover:bg-slate-50"
         }`}
     >
       {icon}
