@@ -60,7 +60,7 @@ const initialNotes: Note[] = [
 
 function App() {
   const [notes, setNotes] = useState<Note[]>(initialNotes);
-
+  const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<
     "all" | ContentType
@@ -73,10 +73,24 @@ function App() {
   const [url, setUrl] = useState("");
   const [tags, setTags] = useState("");
   const [content, setContent] = useState("");
-  const filteredNotes =
-    activeFilter === "all"
-      ? notes
-      : notes.filter((note) => note.type === activeFilter);
+  const filteredNotes = notes.filter((note) => {
+    const matchesFilter =
+      activeFilter === "all" ||
+      note.type === activeFilter;
+
+    const query = searchQuery.toLowerCase().trim();
+
+    const matchesSearch =
+      query === "" ||
+      note.title.toLowerCase().includes(query) ||
+      note.content?.toLowerCase().includes(query) ||
+      note.tags.some((tag) =>
+        tag.toLowerCase().includes(query)
+      ) ||
+      note.type.toLowerCase().includes(query);
+
+    return matchesFilter && matchesSearch;
+  });
   const handleSave = () => {
     if (!title.trim()) {
       return;
@@ -179,7 +193,7 @@ function App() {
         <main className="min-w-0 flex-1">
 
           {/* HEADER */}
-          <header className="flex items-center justify-between px-8 py-10 lg:px-12">
+          <header className="flex items-center justify-between gap-6 px-8 py-10 lg:px-12">
 
             <h2 className="text-4xl font-bold tracking-tight">
               {activeFilter === "all" && "All Notes"}
@@ -189,6 +203,34 @@ function App() {
               {activeFilter === "link" && "Links"}
             </h2>
 
+            <div className="flex flex-1 justify-center">
+
+              <div className="flex w-full max-w-md items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+
+                <span className="text-slate-400">
+                  🔍
+                </span>
+
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search your knowledge..."
+                  className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
+                />
+
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="text-sm text-slate-400 hover:text-slate-700"
+                  >
+                    ✕
+                  </button>
+                )}
+
+              </div>
+
+            </div>
             <div className="flex items-center gap-4">
 
               <button className="flex items-center gap-3 rounded-xl bg-indigo-100 px-7 py-4 text-lg font-medium text-indigo-700 transition hover:bg-indigo-200">
@@ -207,12 +249,30 @@ function App() {
 
           {/* NOTES */}
           <section className="grid grid-cols-1 gap-8 px-8 pb-12 lg:grid-cols-2 xl:grid-cols-3 lg:px-12">
-            {filteredNotes.map((note) => (
-              <NoteCard
-                key={note.id}
-                note={note}
-              />
-            ))}
+            {filteredNotes.length > 0 ? (
+              filteredNotes.map((note) => (
+                <NoteCard
+                  key={note.id}
+                  note={note}
+                />
+              ))
+            ) : (
+              <div className="col-span-full flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white">
+
+                <div className="mb-4 text-4xl">
+                  🔍
+                </div>
+
+                <h3 className="text-lg font-semibold text-slate-700">
+                  No content found
+                </h3>
+
+                <p className="mt-1 text-sm text-slate-400">
+                  Try a different search or filter.
+                </p>
+
+              </div>
+            )}
 
           </section>
           {isModalOpen && (
@@ -292,12 +352,12 @@ function App() {
                   </label>
 
                   <input
+                    type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Enter a title..."
-                    className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                    className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                   />
-
                 </div>
 
                 <div className="mb-4">
