@@ -63,6 +63,7 @@ function App() {
   const [notes, setNotes] = useState<Note[]>(initialNotes);
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteNote, setDeleteNote] = useState<Note | null>(null);
   const [activeFilter, setActiveFilter] = useState<
     "all" | ContentType | "tags"
   >("all");
@@ -137,6 +138,18 @@ function App() {
     setContentType("link");
 
     setIsModalOpen(false);
+  };
+
+  const handleDelete = () => {
+    if (!deleteNote) {
+      return;
+    }
+
+    setNotes((currentNotes) =>
+      currentNotes.filter((note) => note.id !== deleteNote.id)
+    );
+
+    setDeleteNote(null);
   };
 
   return (
@@ -290,8 +303,8 @@ function App() {
                     key={tag}
                     onClick={() => setSelectedTag(tag)}
                     className={`rounded-full px-4 py-2 text-sm font-medium transition ${selectedTag === tag
-                        ? "bg-indigo-600 text-white"
-                        : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                      ? "bg-indigo-600 text-white"
+                      : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
                       }`}
                   >
                     #{tag}
@@ -307,6 +320,7 @@ function App() {
                 <NoteCard
                   key={note.id}
                   note={note}
+                  onDelete={() => setDeleteNote(note)}
                 />
               ))
             ) : (
@@ -446,6 +460,7 @@ function App() {
                   </div>
                 )}
 
+
                 <div className="mb-6">
 
                   <label className="mb-2 block text-sm font-semibold">
@@ -486,11 +501,55 @@ function App() {
               </div>
 
             </div>
+          )}  {deleteNote && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+
+              <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+
+                <div className="mb-6">
+
+                  <h2 className="text-xl font-bold text-slate-900">
+                    Delete Content?
+                  </h2>
+
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    Are you sure you want to delete{" "}
+                    <span className="font-semibold text-slate-700">
+                      "{deleteNote.title}"
+                    </span>
+                    ?
+                  </p>
+
+                </div>
+
+                <div className="flex justify-end gap-3">
+
+                  <button
+                    onClick={() => setDeleteNote(null)}
+                    className="rounded-lg px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    onClick={handleDelete}
+                    className="rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-700"
+                  >
+                    Delete
+                  </button>
+
+                </div>
+
+              </div>
+
+            </div>
           )}
         </main>
       </div>
     </div>
+
   );
+
 }
 
 function SidebarItem({
@@ -525,8 +584,10 @@ function SidebarItem({
 
 function NoteCard({
   note,
+  onDelete,
 }: {
   note: Note;
+  onDelete: () => void;
 }) {
   return (
     <article className="min-h-[450px] rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
@@ -550,10 +611,12 @@ function NoteCard({
             <Share2 size={22} />
           </button>
 
-          <button className="transition hover:text-red-500">
+          <button
+            onClick={onDelete}
+            className="transition hover:text-red-500"
+          >
             <Trash2 size={22} />
           </button>
-
         </div>
 
       </div>
