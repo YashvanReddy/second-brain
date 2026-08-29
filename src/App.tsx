@@ -64,6 +64,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteNote, setDeleteNote] = useState<Note | null>(null);
+  const [editNote, setEditNote] = useState<Note | null>(null);
   const [activeFilter, setActiveFilter] = useState<
     "all" | ContentType | "tags"
   >("all");
@@ -151,6 +152,15 @@ function App() {
 
     setDeleteNote(null);
   };
+const handleEdit = (updatedNote: Note) => {
+  setNotes((currentNotes) =>
+    currentNotes.map((note) =>
+      note.id === updatedNote.id ? updatedNote : note
+    )
+  );
+
+  setEditNote(null);
+};
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800">
@@ -321,6 +331,9 @@ function App() {
                   key={note.id}
                   note={note}
                   onDelete={() => setDeleteNote(note)}
+
+                  onEdit={(note) => setEditNote(note)}
+
                 />
               ))
             ) : (
@@ -543,14 +556,18 @@ function App() {
               </div>
 
             </div>
-          )}
+          )}{editNote && (
+  <EditContentModal
+    note={editNote}
+    onClose={() => setEditNote(null)}
+    onSave={handleEdit}
+  />
+)}
         </main>
       </div>
     </div>
 
-  );
-
-}
+  );}
 
 function SidebarItem({
   icon,
@@ -585,9 +602,11 @@ function SidebarItem({
 function NoteCard({
   note,
   onDelete,
+  onEdit,
 }: {
   note: Note;
   onDelete: () => void;
+  onEdit: (note: Note) => void;
 }) {
   return (
     <article className="min-h-[450px] rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
@@ -656,11 +675,12 @@ function NoteCard({
         <span>
           Added on {note.date}
         </span>
-
-        <button className="text-slate-400 hover:text-slate-600">
+        <button
+          onClick={() => onEdit(note)}
+          className="text-slate-400 hover:text-slate-600"
+        >
           <MoreHorizontal size={22} />
         </button>
-
 
       </div>
 
@@ -726,5 +746,146 @@ function ContentTypeButton({
   );
 }
 
+function EditContentModal({
+  note,
+  onClose,
+  onSave,
+}: {
+  note: Note;
+  onClose: () => void;
+  onSave: (note: Note) => void;
+}) {
+  const [title, setTitle] = useState(note.title);
+  const [url, setUrl] = useState(note.url ?? "");
+  const [content, setContent] = useState(note.content ?? "");
+  const [tags, setTags] = useState(note.tags.join(", "));
+
+  const handleSave = () => {
+    onSave({
+      ...note,
+      title: title.trim(),
+      url: url.trim(),
+      content: content.trim(),
+      tags: tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+
+      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+
+        {/* HEADER */}
+        <div className="mb-6 flex items-center justify-between">
+
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900">
+              Edit Content
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Update your saved content.
+            </p>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          >
+            <X size={22} />
+          </button>
+
+        </div>
+
+        {/* TITLE */}
+        <div className="mb-4">
+
+          <label className="mb-2 block text-sm font-semibold">
+            Title
+          </label>
+
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          />
+
+        </div>
+
+        {/* URL */}
+        <div className="mb-4">
+
+          <label className="mb-2 block text-sm font-semibold">
+            URL
+          </label>
+
+          <input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://..."
+            className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          />
+
+        </div>
+
+        {/* CONTENT */}
+        <div className="mb-4">
+
+          <label className="mb-2 block text-sm font-semibold">
+            Content
+          </label>
+
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows={4}
+            className="w-full resize-none rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          />
+
+        </div>
+
+        {/* TAGS */}
+        <div className="mb-6">
+
+          <label className="mb-2 block text-sm font-semibold">
+            Tags
+          </label>
+
+          <input
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
+            placeholder="learning, productivity, coding"
+            className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          />
+
+        </div>
+
+        {/* BUTTONS */}
+        <div className="flex justify-end gap-3">
+
+          <button
+            onClick={onClose}
+            className="rounded-lg px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
+          >
+            Cancel
+          </button>
+
+          <button
+            onClick={handleSave}
+            className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
+          >
+            Save Changes
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+  );
+}
 
 export default App;
