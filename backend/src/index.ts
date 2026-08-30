@@ -35,7 +35,9 @@ const contentSchema = z.object({
   title: z.string().min(1).max(200).trim(),
   link: z.string().url(),
   type: z.string().min(1).max(50).trim(),
-});
+  content: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+})
 
 app.get("/health", (_req: Request, res: Response) => {
   res.json({
@@ -155,18 +157,20 @@ app.post("/api/v1/content", userMiddleware, async (req, res) => {
       return;
     }
 
-    const { title, link, type } = result.data;
+    const { title, link, type, content, tags } = result.data;
 
-    await ContentModel.create({
+   const newContent = await ContentModel.create({
       title,
       link,
       type,
+      content: content ?? "",
       userId: req.userId,
-      tags: [],
+      tags: tags ?? [],
     });
 
     res.status(201).json({
       message: "Content added",
+      content: newContent,
     });
   } catch (error) {
     console.error("Add content error:", error);
@@ -188,6 +192,57 @@ app.get("/api/v1/content", userMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error("Get content error:", error);
+
+    res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+});
+
+app.put("/api/v1/content/:id", userMiddleware, async (req, res) => {
+  try {
+    const result = contentSchema.safeParse(req.body);
+
+    if (!result.success) {
+      res.status(400).json({
+        message: "Invalid content",
+        errors: result.error.flatten(),
+      });
+      return;
+    }
+
+    const { title, link, type, content, tags } = result.data;
+
+    const updatedContent = await ContentModel.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        userId: req.userId,
+      },
+      {
+        title,
+        link,
+        type,
+        content: content ?? "",
+        tags: tags ?? [],
+      },
+      {
+        new: true,
+      }
+    );
+
+    if (!updatedContent) {
+      res.status(404).json({
+        message: "Content not found",
+      });
+      return;
+    }
+
+    res.json({
+      message: "Content updated",
+      content: updatedContent,
+    });
+  } catch (error) {
+    console.error("Update content error:", error);
 
     res.status(500).json({
       message: "Internal server error",

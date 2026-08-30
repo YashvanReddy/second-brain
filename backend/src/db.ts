@@ -40,20 +40,29 @@ const ContentSchema = new Schema(
       required: true,
       trim: true,
     },
+
     link: {
       type: String,
       required: true,
     },
+
+    content: {
+      type: String,
+      default: "",
+    },
+
     tags: [
       {
-        type: Schema.Types.ObjectId,
-        ref: "Tag",
+        type: String,
+        trim: true,
       },
     ],
+
     type: {
       type: String,
       required: true,
     },
+
     userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -62,7 +71,6 @@ const ContentSchema = new Schema(
   },
   { timestamps: true }
 );
-
 const LinkSchema = new Schema(
   {
     hash: {

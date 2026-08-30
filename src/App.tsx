@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Brain,
@@ -19,7 +19,7 @@ import {
 type ContentType = "tweet" | "video" | "document" | "link";
 
 type Note = {
-  id: number;
+  id: string;
   title: string;
   type: ContentType;
   content?: string;
@@ -68,7 +68,13 @@ function App() {
   const [activeFilter, setActiveFilter] = useState<
     "all" | ContentType | "tags"
   >("all");
-
+  const [isLoggedIn, setIsLoggedIn] = useState(
+    Boolean(localStorage.getItem("token"))
+  );
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [contentType, setContentType] =
     useState<ContentType>("link");
 
@@ -105,25 +111,142 @@ function App() {
   const allTags = Array.from(
     new Set(notes.flatMap((note) => note.tags))
   );
+useEffect(() => {
+  const fetchNotes = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        "http://localhost:3000/api/v1/content",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Failed to fetch content:", data);
+        return;
+      }
+
+      const fetchedNotes: Note[] = data.content.map((item: any) => ({
+        id: item._id,
+        title: item.title,
+        type: item.type as ContentType,
+        content: item.content ?? "",
+        url: item.link ?? "",
+        tags: item.tags ?? [],
+        date: new Date(item.createdAt).toLocaleDateString("en-GB"),
+      }));
+
+      setNotes(fetchedNotes);
+    } catch (error) {
+      console.error("Error fetching content:", error);
+    }
+  };
+
+  fetchNotes();
+}, []);
+  const handleLogin = async () => {
+    setAuthError("");
+
+    if (!username.trim() || !password.trim()) {
+      setAuthError("Please enter username and password.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:3000/api/v1/signin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: username.trim(),
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setAuthError(data.message || "Login failed.");
+        return;
+      }
+
+      localStorage.setItem("token", data.token);
+
+      setIsLoggedIn(true);
+      setUsername("");
+      setPassword("");
+    } catch (error) {
+      console.error("Login error:", error);
+      setAuthError("Unable to connect to the server.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
 
+  const handleSave = async () => {
+  if (!title.trim() || !url.trim()) {
+    return;
+  }
 
+  const token = localStorage.getItem("token");
 
-  const handleSave = () => {
-    if (!title.trim()) {
+  if (!token) {
+    setIsLoggedIn(false);
+    return;
+  }
+
+  const noteTags = tags
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+
+  try {
+    const response = await fetch(
+      "http://localhost:3000/api/v1/content",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: title.trim(),
+          link: url.trim(),
+          type: contentType,
+          content: content.trim(),
+          tags: noteTags,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Failed to add content:", data);
       return;
     }
 
     const newNote: Note = {
-      id: Date.now(),
+      id: data.content?._id ?? Date.now().toString(),
       title: title.trim(),
       type: contentType,
       url: url.trim(),
       content: content.trim(),
-      tags: tags
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
+      tags: noteTags,
       date: new Date().toLocaleDateString("en-GB"),
     };
 
@@ -139,10 +262,41 @@ function App() {
     setContentType("link");
 
     setIsModalOpen(false);
-  };
+  } catch (error) {
+    console.error("Add content error:", error);
+  }
+};  
+const handleDelete = async () => {
+  if (!deleteNote) {
+    return;
+  }
 
-  const handleDelete = () => {
-    if (!deleteNote) {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    setIsLoggedIn(false);
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      "http://localhost:3000/api/v1/content",
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          contentId: deleteNote.id,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Failed to delete content:", data);
       return;
     }
 
@@ -151,16 +305,121 @@ function App() {
     );
 
     setDeleteNote(null);
-  };
-const handleEdit = (updatedNote: Note) => {
-  setNotes((currentNotes) =>
-    currentNotes.map((note) =>
-      note.id === updatedNote.id ? updatedNote : note
-    )
-  );
-
-  setEditNote(null);
+  } catch (error) {
+    console.error("Delete content error:", error);
+  }
 };
+
+
+  const handleEdit = async (updatedNote: Note) => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    setIsLoggedIn(false);
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `http://localhost:3000/api/v1/content/${updatedNote.id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: updatedNote.title.trim(),
+          link: updatedNote.url?.trim() || "https://example.com",
+          type: updatedNote.type,
+          content: updatedNote.content?.trim() || "",
+          tags: updatedNote.tags,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Failed to update content:", data);
+      return;
+    }
+
+    setNotes((currentNotes) =>
+      currentNotes.map((note) =>
+        note.id === updatedNote.id ? updatedNote : note
+      )
+    );
+
+    setEditNote(null);
+  } catch (error) {
+    console.error("Edit content error:", error);
+  }
+};
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
+
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold text-slate-900">
+              Second Brain
+            </h1>
+
+            <p className="mt-2 text-sm text-slate-500">
+              Sign in to access your knowledge base
+            </p>
+          </div>
+
+          <div className="mb-4">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
+              Username
+            </label>
+
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter your username"
+              className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
+              Password
+            </label>
+
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              className="w-full rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            />
+          </div>
+
+          {authError && (
+            <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+              {authError}
+            </div>  
+          )}
+
+          <button
+            onClick={handleLogin}
+            disabled={isLoading}
+            className="w-full rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isLoading ? "Signing in..." : "Sign In"}
+          </button>
+
+        </div>
+      </div>
+    );
+  }
+
+
+
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800">
@@ -557,17 +816,18 @@ const handleEdit = (updatedNote: Note) => {
 
             </div>
           )}{editNote && (
-  <EditContentModal
-    note={editNote}
-    onClose={() => setEditNote(null)}
-    onSave={handleEdit}
-  />
-)}
+            <EditContentModal
+              note={editNote}
+              onClose={() => setEditNote(null)}
+              onSave={handleEdit}
+            />
+          )}
         </main>
       </div>
     </div>
 
-  );}
+  );
+}
 
 function SidebarItem({
   icon,
