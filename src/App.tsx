@@ -561,7 +561,7 @@ function App() {
                     onClick={() => setSearchQuery("")}
                     className="text-sm text-slate-400 hover:text-slate-700"
                   >
-                    ✕
+                    
                   </button>
                 )}
 
