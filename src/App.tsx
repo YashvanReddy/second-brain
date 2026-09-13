@@ -10,6 +10,7 @@ import {
   Trash2,
   MoreHorizontal,
   X,
+  LogOut,
 } from "lucide-react";
 
 import {
@@ -111,49 +112,56 @@ function App() {
   const allTags = Array.from(
     new Set(notes.flatMap((note) => note.tags))
   );
-useEffect(() => {
-  const fetchNotes = async () => {
-    const token = localStorage.getItem("token");
+  useEffect(() => {
+    const fetchNotes = async () => {
+      const token = localStorage.getItem("token");
 
-    if (!token) {
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        "http://localhost:3000/api/v1/content",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error("Failed to fetch content:", data);
+      if (!token) {
         return;
       }
 
-      const fetchedNotes: Note[] = data.content.map((item: any) => ({
-        id: item._id,
-        title: item.title,
-        type: item.type as ContentType,
-        content: item.content ?? "",
-        url: item.link ?? "",
-        tags: item.tags ?? [],
-        date: new Date(item.createdAt).toLocaleDateString("en-GB"),
-      }));
+      try {
+        const response = await fetch(
+          "http://localhost:3000/api/v1/content",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-      setNotes(fetchedNotes);
-    } catch (error) {
-      console.error("Error fetching content:", error);
-    }
-  };
+        const data = await response.json();
 
-  fetchNotes();
-}, []);
+        if (!response.ok) {
+          console.error("Failed to fetch content:", data);
+
+          if (response.status === 401) {
+            localStorage.removeItem("token");
+            setIsLoggedIn(false);
+            setNotes([]);
+          }
+
+          return;
+        }
+
+        const fetchedNotes: Note[] = data.content.map((item: any) => ({
+          id: item._id,
+          title: item.title,
+          type: item.type as ContentType,
+          content: item.content ?? "",
+          url: item.link ?? "",
+          tags: item.tags ?? [],
+          date: new Date(item.createdAt).toLocaleDateString("en-GB"),
+        }));
+
+        setNotes(fetchedNotes);
+      } catch (error) {
+        console.error("Error fetching content:", error);
+      }
+    };
+
+    fetchNotes();
+  }, []);
   const handleLogin = async () => {
     setAuthError("");
 
@@ -198,164 +206,169 @@ useEffect(() => {
 
 
   const handleSave = async () => {
-  if (!title.trim() || !url.trim()) {
-    return;
-  }
-
-  const token = localStorage.getItem("token");
-
-  if (!token) {
-    setIsLoggedIn(false);
-    return;
-  }
-
-  const noteTags = tags
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean);
-
-  try {
-    const response = await fetch(
-      "http://localhost:3000/api/v1/content",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title: title.trim(),
-          link: url.trim(),
-          type: contentType,
-          content: content.trim(),
-          tags: noteTags,
-        }),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Failed to add content:", data);
+    if (!title.trim() || !url.trim()) {
       return;
     }
 
-    const newNote: Note = {
-      id: data.content?._id ?? Date.now().toString(),
-      title: title.trim(),
-      type: contentType,
-      url: url.trim(),
-      content: content.trim(),
-      tags: noteTags,
-      date: new Date().toLocaleDateString("en-GB"),
-    };
+    const token = localStorage.getItem("token");
 
-    setNotes((currentNotes) => [
-      newNote,
-      ...currentNotes,
-    ]);
-
-    setTitle("");
-    setUrl("");
-    setTags("");
-    setContent("");
-    setContentType("link");
-
-    setIsModalOpen(false);
-  } catch (error) {
-    console.error("Add content error:", error);
-  }
-};  
-const handleDelete = async () => {
-  if (!deleteNote) {
-    return;
-  }
-
-  const token = localStorage.getItem("token");
-
-  if (!token) {
-    setIsLoggedIn(false);
-    return;
-  }
-
-  try {
-    const response = await fetch(
-      "http://localhost:3000/api/v1/content",
-      {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          contentId: deleteNote.id,
-        }),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Failed to delete content:", data);
+    if (!token) {
+      setIsLoggedIn(false);
       return;
     }
 
-    setNotes((currentNotes) =>
-      currentNotes.filter((note) => note.id !== deleteNote.id)
-    );
+    const noteTags = tags
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
 
-    setDeleteNote(null);
-  } catch (error) {
-    console.error("Delete content error:", error);
-  }
-};
+    try {
+      const response = await fetch(
+        "http://localhost:3000/api/v1/content",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            title: title.trim(),
+            link: url.trim(),
+            type: contentType,
+            content: content.trim(),
+            tags: noteTags,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Failed to add content:", data);
+        return;
+      }
+
+      const newNote: Note = {
+        id: data.content?._id ?? Date.now().toString(),
+        title: title.trim(),
+        type: contentType,
+        url: url.trim(),
+        content: content.trim(),
+        tags: noteTags,
+        date: new Date().toLocaleDateString("en-GB"),
+      };
+
+      setNotes((currentNotes) => [
+        newNote,
+        ...currentNotes,
+      ]);
+
+      setTitle("");
+      setUrl("");
+      setTags("");
+      setContent("");
+      setContentType("link");
+
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Add content error:", error);
+    }
+  };
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setIsLoggedIn(false);
+    setNotes([]);
+  };
+  const handleDelete = async () => {
+    if (!deleteNote) {
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setIsLoggedIn(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        "http://localhost:3000/api/v1/content",
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            contentId: deleteNote.id,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Failed to delete content:", data);
+        return;
+      }
+
+      setNotes((currentNotes) =>
+        currentNotes.filter((note) => note.id !== deleteNote.id)
+      );
+
+      setDeleteNote(null);
+    } catch (error) {
+      console.error("Delete content error:", error);
+    }
+  };
 
 
   const handleEdit = async (updatedNote: Note) => {
-  const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-  if (!token) {
-    setIsLoggedIn(false);
-    return;
-  }
-
-  try {
-    const response = await fetch(
-      `http://localhost:3000/api/v1/content/${updatedNote.id}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title: updatedNote.title.trim(),
-          link: updatedNote.url?.trim() || "https://example.com",
-          type: updatedNote.type,
-          content: updatedNote.content?.trim() || "",
-          tags: updatedNote.tags,
-        }),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Failed to update content:", data);
+    if (!token) {
+      setIsLoggedIn(false);
       return;
     }
 
-    setNotes((currentNotes) =>
-      currentNotes.map((note) =>
-        note.id === updatedNote.id ? updatedNote : note
-      )
-    );
+    try {
+      const response = await fetch(
+        `http://localhost:3000/api/v1/content/${updatedNote.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            title: updatedNote.title.trim(),
+            link: updatedNote.url?.trim() || "https://example.com",
+            type: updatedNote.type,
+            content: updatedNote.content?.trim() || "",
+            tags: updatedNote.tags,
+          }),
+        }
+      );
 
-    setEditNote(null);
-  } catch (error) {
-    console.error("Edit content error:", error);
-  }
-};
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Failed to update content:", data);
+        return;
+      }
+
+      setNotes((currentNotes) =>
+        currentNotes.map((note) =>
+          note.id === updatedNote.id ? updatedNote : note
+        )
+      );
+
+      setEditNote(null);
+    } catch (error) {
+      console.error("Edit content error:", error);
+    }
+  };
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
@@ -402,7 +415,7 @@ const handleDelete = async () => {
           {authError && (
             <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
               {authError}
-            </div>  
+            </div>
           )}
 
           <button
@@ -500,6 +513,14 @@ const handleDelete = async () => {
               active={activeFilter === "tags"}
               onClick={() => setActiveFilter("tags")}
             />
+            <button
+              onClick={handleLogout}
+              className="mt-6 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-slate-700 transition hover:bg-slate-100"
+            >
+              <LogOut size={22} />
+              <span>Logout</span>
+            </button>
+
           </nav>
         </aside>
 
