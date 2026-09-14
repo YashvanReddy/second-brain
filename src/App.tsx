@@ -63,6 +63,8 @@ function App() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [notes, setNotes] = useState<Note[]>(initialNotes);
   const [searchQuery, setSearchQuery] = useState("");
+  const [shareLink, setShareLink] = useState("");
+  const [isSharing, setIsSharing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteNote, setDeleteNote] = useState<Note | null>(null);
   const [editNote, setEditNote] = useState<Note | null>(null);
@@ -82,8 +84,16 @@ function App() {
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [tags, setTags] = useState("");
-  const [content, setContent] = useState("");
+  const [content, setContent] = useState("");const sharePath = window.location.pathname;
 
+if (sharePath.startsWith("/share/")) {
+  const shareHash = sharePath.split("/share/")[1];
+
+  if (shareHash) {
+    // Shared brain page
+    return <SharedBrainPage shareHash={shareHash} />;
+  }
+}
 
 
   const filteredNotes = notes.filter((note) => {
@@ -322,7 +332,47 @@ function App() {
       console.error("Delete content error:", error);
     }
   };
+  const handleShareBrain = async () => {
+    const token = localStorage.getItem("token");
 
+    if (!token) {
+      setIsLoggedIn(false);
+      return;
+    }
+
+    setIsSharing(true);
+
+    try {
+      const response = await fetch(
+        "http://localhost:3000/api/v1/brain/share",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            share: true,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Failed to share brain:", data);
+        return;
+      }
+
+      const publicLink = `${window.location.origin}/share/${data.hash}`;
+
+      setShareLink(publicLink);
+    } catch (error) {
+      console.error("Share brain error:", error);
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   const handleEdit = async (updatedNote: Note) => {
     const token = localStorage.getItem("token");
@@ -472,7 +522,7 @@ function App() {
               label="Tweets"
               active={activeFilter === "tweet"}
               onClick={() => {
-                setActiveFilter("all");
+                setActiveFilter("tweet");
                 setSelectedTag(null);
               }}
             />
@@ -482,7 +532,7 @@ function App() {
               label="Videos"
               active={activeFilter === "video"}
               onClick={() => {
-                setActiveFilter("all");
+                setActiveFilter("video");
                 setSelectedTag(null);
               }}
             />
@@ -492,17 +542,7 @@ function App() {
               label="Documents"
               active={activeFilter === "document"}
               onClick={() => {
-                setActiveFilter("all");
-                setSelectedTag(null);
-              }}
-            />
-
-            <SidebarItem
-              icon={<Link size={28} />}
-              label="Links"
-              active={activeFilter === "link"}
-              onClick={() => {
-                setActiveFilter("all");
+                setActiveFilter("document");
                 setSelectedTag(null);
               }}
             />
@@ -511,8 +551,37 @@ function App() {
               icon={<Hash size={29} />}
               label="Tags"
               active={activeFilter === "tags"}
-              onClick={() => setActiveFilter("tags")}
+              onClick={() => {
+                setActiveFilter("tags");
+                setSelectedTag(null);
+              }}
             />
+
+            {activeFilter === "tags" && (
+              <div className="ml-10 mt-2 space-y-2">
+                {allTags.length === 0 ? (
+                  <p className="text-sm text-slate-400">
+                    No tags yet
+                  </p>
+                ) : (
+                  allTags.map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => setSelectedTag(tag)}
+                      className={`block w-full rounded-lg px-3 py-2 text-left text-sm transition ${selectedTag === tag
+                        ? "bg-indigo-50 font-semibold text-indigo-600"
+                        : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                        }`}
+                    >
+                      #{tag}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+
+
+
             <button
               onClick={handleLogout}
               className="mt-6 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-slate-700 transition hover:bg-slate-100"
@@ -561,7 +630,7 @@ function App() {
                     onClick={() => setSearchQuery("")}
                     className="text-sm text-slate-400 hover:text-slate-700"
                   >
-                    
+                    ✕
                   </button>
                 )}
 
@@ -570,11 +639,31 @@ function App() {
             </div>
             <div className="flex items-center gap-4">
 
-              <button className="flex items-center gap-3 rounded-xl bg-indigo-100 px-7 py-4 text-lg font-medium text-indigo-700 transition hover:bg-indigo-200">
+              <button
+                onClick={handleShareBrain}
+                disabled={isSharing}
+                className="flex items-center gap-3 rounded-xl bg-indigo-100 px-7 py-4 text-lg font-medium text-indigo-700 transition hover:bg-indigo-200 disabled:cursor-not-allowed disabled:opacity-60"
+              >
                 <Share2 size={24} />
-                Share Brain
+                {isSharing ? "Sharing..." : "Share Brain"}
               </button>
+              {shareLink && (
+                <div className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3">
+                  <input
+                    type="text"
+                    value={shareLink}
+                    readOnly
+                    className="min-w-0 flex-1 bg-transparent text-sm text-slate-600 outline-none"
+                  />
 
+                  <button
+                    onClick={() => navigator.clipboard.writeText(shareLink)}
+                    className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                  >
+                    Copy
+                  </button>
+                </div>
+              )}
               <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-3 rounded-xl bg-indigo-600 px-7 py-4 text-lg font-medium text-white shadow-sm transition hover:bg-indigo-700">
                 <Plus size={26} />
                 Add Content
@@ -1168,5 +1257,116 @@ function EditContentModal({
     </div>
   );
 }
+function SharedBrainPage({ shareHash }: { shareHash: string }) {
+  const [sharedData, setSharedData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
+  useEffect(() => {
+    const fetchSharedBrain = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:3000/api/v1/brain/${shareHash}`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setError(data.message || "Shared brain not found.");
+          return;
+        }
+
+        setSharedData(data);
+      } catch (error) {
+        console.error("Shared brain error:", error);
+        setError("Unable to load shared brain.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSharedBrain();
+  }, [shareHash]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <p className="text-slate-500">
+          Loading shared content...
+        </p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-slate-900">
+            Shared Brain Not Found
+          </h1>
+
+          <p className="mt-2 text-slate-500">
+            {error}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-8">
+      <div className="mx-auto max-w-6xl">
+        <h1 className="text-3xl font-bold text-slate-900">
+          {sharedData.username}'s Shared Brain
+        </h1>
+
+        <p className="mt-2 text-slate-500">
+          Shared knowledge and saved content
+        </p>
+
+        <div className="mt-8 grid gap-6 md:grid-cols-2">
+          {sharedData.content.map((note: any) => (
+            <div
+              key={note._id}
+              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+            >
+              <h2 className="text-xl font-semibold text-slate-900">
+                {note.title}
+              </h2>
+
+              <p className="mt-3 text-slate-600">
+                {note.content}
+              </p>
+
+              {note.tags?.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {note.tags.map((tag: string) => (
+                    <span
+                      key={tag}
+                      className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {note.link && (
+                <a
+                  href={note.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-5 inline-block text-sm font-medium text-indigo-600 hover:text-indigo-700"
+                >
+                  Open Link →
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 export default App;
